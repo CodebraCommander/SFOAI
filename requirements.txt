@@ -1,0 +1,5 @@
+flask
+gunicorn
+openai
+python-dotenv  # (Optional, for local API key management)
+pillow  # If you process images
