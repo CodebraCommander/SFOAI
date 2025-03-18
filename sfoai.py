@@ -10,26 +10,37 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 def home():
     return jsonify({"message": "SFOAI API is running."})
 
+from flask import Flask, request, jsonify
+import openai
+import os
+
+app = Flask(__name__)
+
+# Ensure OpenAI API Key is set
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.json
     messages = data.get("messages", [])
     json_format = data.get("json_format", "{}")
 
-    # Enforce JSON format in the prompt
     system_message = {
         "role": "system",
         "content": f"You must always respond in valid JSON format: {json_format}"
     }
-    
     messages.insert(0, system_message)
 
-    response = openai.ChatCompletion.create(
+    # Use new OpenAI v1.0+ API syntax
+    client = openai.OpenAI()
+    
+    response = client.chat.completions.create(
         model="gpt-4-turbo",
         messages=messages
     )
-    
-    return jsonify({"response": response["choices"][0]["message"]["content"]})
+
+    return jsonify({"response": response.choices[0].message.content})
+
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
