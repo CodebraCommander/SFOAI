@@ -6,6 +6,10 @@ app = Flask(__name__)
 import os
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"message": "SFOAI API is running."})
+
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.json
