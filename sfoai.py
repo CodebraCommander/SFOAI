@@ -3,6 +3,7 @@ import openai
 import base64
 import os
 import traceback  # For better error handling
+import pandas as pd  # ✅ Import pandas
 
 app = Flask(__name__)
 
@@ -43,21 +44,39 @@ def chat():
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
-    try:
-        if "file" not in request.files:
-            return jsonify({"error": "No file provided"}), 400
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
 
-        file = request.files["file"]
-        if file.filename == "":
-            return jsonify({"error": "No selected file"}), 400
+    file = request.files["file"]
+    
+    # ✅ Check file extension
+    filename = file.filename
+    file_extension = filename.split(".")[-1].lower()
 
-        # Read and encode file
+    if file_extension in ["xlsx", "xls"]:
+        try:
+            # ✅ Read Excel file using pandas
+            df = pd.read_excel(file)
+            extracted_data = df.to_dict(orient="records")  # Convert to JSON format
+
+            # ✅ Use AI to analyze extracted Excel data
+            response = openai.ChatCompletion.create(
+                model="gpt-4-turbo",
+                messages=[
+                    {"role": "system", "content": "Analyze the extracted Excel data and summarize key insights."},
+                    {"role": "user", "content": str(extracted_data)}
+                ]
+            )
+            return jsonify({"summary": response["choices"][0]["message"]["content"], "extracted_data": extracted_data})
+        
+        except Exception as e:
+            return jsonify({"error": f"Failed to process Excel file: {str(e)}"}), 500
+
+    else:
+        # ✅ Handle non-Excel files normally
         file_content = base64.b64encode(file.read()).decode("utf-8")
 
-        # OpenAI API call with updated syntax
-        client = openai.OpenAI()
-
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4-turbo",
             messages=[
                 {"role": "system", "content": "Analyze the uploaded document and summarize its key points."},
@@ -65,12 +84,7 @@ def upload_file():
             ]
         )
 
-        return jsonify({"summary": response.choices[0].message.content})
-
-    except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"Error in /upload: {error_details}")  # Log error details
-        return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
+        return jsonify({"summary": response["choices"][0]["message"]["content"]})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(port=5000)
