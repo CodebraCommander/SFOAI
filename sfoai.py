@@ -31,7 +31,7 @@ def chat():
         client = openai.OpenAI()
 
         response = client.chat.completions.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             messages=messages
         )
 
@@ -61,7 +61,7 @@ def upload_file():
 
             # ✅ Use AI to analyze extracted Excel data
             response = openai.ChatCompletion.create(
-                model="gpt-4-turbo",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "Analyze the extracted Excel data and summarize key insights."},
                     {"role": "user", "content": str(extracted_data)}
@@ -77,7 +77,7 @@ def upload_file():
         file_content = base64.b64encode(file.read()).decode("utf-8")
 
         response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "Analyze the uploaded document and summarize its key points."},
                 {"role": "user", "content": f"File content (base64-encoded): {file_content}"}
