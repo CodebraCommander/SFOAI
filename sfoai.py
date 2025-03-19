@@ -5,6 +5,9 @@ import os
 import traceback  # For better error handling
 import pandas as pd  # ✅ Import pandas
 
+# ✅ Initialize OpenAI client at the top (before defining routes)
+client = openai.OpenAI()
+
 app = Flask(__name__)
 
 # Ensure OpenAI API Key is set
@@ -50,25 +53,25 @@ def upload_file():
     file = request.files["file"]
     analysis_instructions = request.form.get("file-analysis-instructions", "Analyze the uploaded document and summarize key points.")  # ✅ Updated default instruction
 
-    # ✅ Check file extension
+    # ✅ Check file extension before processing
     filename = file.filename
     file_extension = filename.split(".")[-1].lower()
 
-    if file_extension in ["xlsx", "xls", "xlsm"]:
+    if file_extension in ["xlsx", "xls"]:
         try:
             # ✅ Read Excel file using pandas
             df = pd.read_excel(file)
             extracted_data = df.to_dict(orient="records")  # Convert to JSON format
 
-            # ✅ Use AI to analyze extracted Excel data based on user instructions
-            response = openai.ChatCompletion.create(
+            # ✅ Send extracted JSON to OpenAI
+            response = client.chat.completions.create(
                 model="gpt-4o",  # ✅ Always using GPT-4o
                 messages=[
                     {"role": "system", "content": f"{analysis_instructions}"},  # ✅ Custom user instructions
-                    {"role": "user", "content": str(extracted_data)}
+                    {"role": "user", "content": f"Here is the extracted data in JSON format: {str(extracted_data)}"}
                 ]
             )
-            return jsonify({"summary": response["choices"][0]["message"]["content"], "extracted_data": extracted_data})
+            return jsonify({"summary": response.choices[0].message.content, "extracted_data": extracted_data})
         
         except Exception as e:
             return jsonify({"error": f"Failed to process Excel file: {str(e)}"}), 500
@@ -77,7 +80,7 @@ def upload_file():
         # ✅ Handle non-Excel files normally
         file_content = base64.b64encode(file.read()).decode("utf-8")
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",  # ✅ Always using GPT-4o
             messages=[
                 {"role": "system", "content": f"{analysis_instructions}"},  # ✅ Custom user instructions
@@ -85,7 +88,7 @@ def upload_file():
             ]
         )
 
-        return jsonify({"summary": response["choices"][0]["message"]["content"]})
+        return jsonify({"summary": response.choices[0].message.content})
 
 if __name__ == "__main__":
     app.run(port=5000)
