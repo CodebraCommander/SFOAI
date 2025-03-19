@@ -48,22 +48,23 @@ def upload_file():
         return jsonify({"error": "No file part"}), 400
 
     file = request.files["file"]
-    
+    analysis_instructions = request.form.get("file-analysis-instructions", "Analyze the uploaded document and summarize key points.")  # ✅ Updated default instruction
+
     # ✅ Check file extension
     filename = file.filename
     file_extension = filename.split(".")[-1].lower()
 
-    if file_extension in ["xlsx", "xls"]:
+    if file_extension in ["xlsx", "xls", "xlsm"]:
         try:
             # ✅ Read Excel file using pandas
             df = pd.read_excel(file)
             extracted_data = df.to_dict(orient="records")  # Convert to JSON format
 
-            # ✅ Use AI to analyze extracted Excel data
+            # ✅ Use AI to analyze extracted Excel data based on user instructions
             response = openai.ChatCompletion.create(
-                model="gpt-4o",
+                model="gpt-4o",  # ✅ Always using GPT-4o
                 messages=[
-                    {"role": "system", "content": "Analyze the extracted Excel data and summarize key insights."},
+                    {"role": "system", "content": f"{analysis_instructions}"},  # ✅ Custom user instructions
                     {"role": "user", "content": str(extracted_data)}
                 ]
             )
@@ -77,9 +78,9 @@ def upload_file():
         file_content = base64.b64encode(file.read()).decode("utf-8")
 
         response = openai.ChatCompletion.create(
-            model="gpt-4o",
+            model="gpt-4o",  # ✅ Always using GPT-4o
             messages=[
-                {"role": "system", "content": "Analyze the uploaded document and summarize its key points."},
+                {"role": "system", "content": f"{analysis_instructions}"},  # ✅ Custom user instructions
                 {"role": "user", "content": f"File content (base64-encoded): {file_content}"}
             ]
         )
